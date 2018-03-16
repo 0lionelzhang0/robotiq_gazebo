@@ -18,7 +18,7 @@ sudo apt-get purge gazebo*
 ```
 roslaunch robotiq_s_model_articulated_gazebo robotiq.launch
 ```
-   ![alt text](https://github.com/0lionelzhang0/robotiq_gazebo/tree/master/img/gripper.png "Robotiq Gripper in Gazebo")
+   ![gripper](https://user-images.githubusercontent.com/36424267/37539067-e6718f6e-290f-11e8-80b1-db5f602a5b40.png)
 
 6. robotiq_pub.py publishes commands to the topic '/left_hand/command'  
 Enter positions for A, B, C, and S to command gripper
