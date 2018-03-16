@@ -5,13 +5,13 @@
 ```
 sudo apt-get purge gazebo*
 ```
-      Then install Gazebo7 using instructions at http://gazebosim.org/tutorials?tut=install_ubuntu&ver=7.0
+   Then install Gazebo7 using instructions at http://gazebosim.org/tutorials?tut=install_ubuntu&ver=7.0
 
 2. Download the robotiq package from https://github.com/ros-industrial/robotiq
 
 3. Copy the robotiq folder from this repository to the robotiq folder in your workspace.
 
-4. Build all the files using catkin_make
+4. Build all the files using catkin_make in your workspace
 
 5. To open gazebo with gripper, run
 
