@@ -9,7 +9,7 @@ sudo apt-get purge gazebo*
 
 2. Download the robotiq package from https://github.com/ros-industrial/robotiq
 
-3. Copy the robotiq folder from this repository to the robotiq folder in your workspace.
+3. Copy the robotiq folder from this repository to the robotiq folder in your workspace (replace all files).
 
 4. Build all the files using catkin_make in your workspace
 
