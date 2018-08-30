@@ -1,4 +1,4 @@
-# Robotiq Gazebo
+# Visualizing Robotiq 3 Finger Gripper in Gazebo
 
 ## Setup
 1. Uninstall Gazebo2 with
