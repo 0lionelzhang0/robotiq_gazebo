@@ -670,6 +670,8 @@ void RobotiqHandPlugin::GetAndPublishJointState(
 ////////////////////////////////////////////////////////////////////////////////
 void RobotiqHandPlugin::UpdatePIDControl(double _dt)
 {
+    int joint_1_close_position = 150;
+
 	if (this->handState == Disabled)
 	{
 		for (int i = 0; i < this->NumJoints; ++i)
@@ -765,7 +767,7 @@ void RobotiqHandPlugin::UpdatePIDControl(double _dt)
 			}
 
             // Limit so that rest of motion is done in joint 2
-            if (fingerPosition > 150) fingerPosition = 150;
+            if (fingerPosition > joint_1_close_position) fingerPosition = joint_1_close_position;
 
 			if (this->graspingMode == Pinch)
 			{
@@ -814,8 +816,8 @@ void RobotiqHandPlugin::UpdatePIDControl(double _dt)
             }
 
             // Move only if position command is past 150
-            if (fingerPosition < 150) fingerPosition = 0;
-            else fingerPosition = (fingerPosition - 150) * 1.6;
+            if (fingerPosition < joint_1_close_position) fingerPosition = 0;
+            else fingerPosition = (fingerPosition - joint_1_close_position) * 1.6;
 
 
             if (this->graspingMode == Pinch)
@@ -857,14 +859,14 @@ void RobotiqHandPlugin::UpdatePIDControl(double _dt)
 		double torque = this->posePID[i].Update(poseError, _dt);
         // double torque = 20;
 
-        if (debug_flag)
-        {
-            if (counter > 100000) debug_flag = false;
-            else counter++;
-            printf("i = %d: %.3f TargetPos\n", i, targetPose);
-            printf("i = %d: %.3f CurrPos\n", i, currentPose);
-            printf("i = %d: %.3f Torque\n", i, torque);
-        }
+        // if (debug_flag)
+        // {
+        //     if (counter > 100000) debug_flag = false;
+        //     else counter++;
+        //     printf("i = %d: %.3f TargetPos\n", i, targetPose);
+        //     printf("i = %d: %.3f CurrPos\n", i, currentPose);
+        //     printf("i = %d: %.3f Torque\n", i, torque);
+        // }
 
 		// Apply the PID command.
         // if (i == 5)
