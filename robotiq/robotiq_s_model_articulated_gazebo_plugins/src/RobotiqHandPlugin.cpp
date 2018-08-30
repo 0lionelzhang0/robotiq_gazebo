@@ -16,7 +16,7 @@
 */
 /*
 		This file has been modified from the original, by Devon Ash
-*/ 
+*/
 
 #include <robotiq_s_model_articulated_msgs/SModelRobotInput.h>
 #include <robotiq_s_model_articulated_msgs/SModelRobotOutput.h>
@@ -31,7 +31,7 @@ Due to necessity, I had to change the PID.hh file's definition from private memb
 I'm not sure exactly where the dependency chain includes PID.hh for the first time, so I've encapsulated all of the gazebo includes. Not pretty, but it works. If you're reading this and know of a better soln', feel free to change it.
 
 */
-#define private public 
+#define private public
 #include <gazebo/common/Plugin.hh>
 #include <gazebo/common/Time.hh>
 #include <gazebo/math/Angle.hh>
@@ -48,6 +48,9 @@ const std::string RobotiqHandPlugin::DefaultRightTopicCommand =
 	"/right_hand/command";
 const std::string RobotiqHandPlugin::DefaultRightTopicState   =
 	"/right_hand/state";
+
+bool debug_flag = true;
+int counter = 0;
 
 ////////////////////////////////////////////////////////////////////////////////
 RobotiqHandPlugin::RobotiqHandPlugin()
@@ -265,7 +268,7 @@ bool RobotiqHandPlugin::VerifyCommand(
 				 this->VerifyField("rPRB", 0, 255, _command->rACT) &&
 				 this->VerifyField("rSPB", 0, 255, _command->rACT) &&
 				 this->VerifyField("rFRB", 0, 255, _command->rACT) &&
-				 this->VerifyField("rPRC", 0, 255, _command->rACT) && 
+				 this->VerifyField("rPRC", 0, 255, _command->rACT) &&
 				 this->VerifyField("rSPC", 0, 255, _command->rACT) &&
 				 this->VerifyField("rFRC", 0, 255, _command->rACT) &&
 				 this->VerifyField("rPRS", 0, 255, _command->rACT) &&
@@ -290,7 +293,7 @@ void RobotiqHandPlugin::SetHandleCommand(
 
 	// Update handleCommand.
 	this->handleCommand = *_msg;
-	printf("Handle check: %d", this->handleCommand.rPRA);
+	// printf("Handle check: %d", this->handleCommand.rPRA);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -689,7 +692,7 @@ void RobotiqHandPlugin::UpdatePIDControl(double _dt)
 					 this->joints[i]->GetLowerLimit(0).Radian()) * (215.0 / 255.0)
 					* this->handleCommand.rPRS / 255.0;
 			}
-			else 
+			else
 			{
 				switch (this->graspingMode)
 				{
@@ -712,7 +715,7 @@ void RobotiqHandPlugin::UpdatePIDControl(double _dt)
 				}
 			}
 		}
-		else if (i == 1)
+		else if (i == 1) // scissor
 		{
 			if (this->ICS_on)
 			{
@@ -741,24 +744,28 @@ void RobotiqHandPlugin::UpdatePIDControl(double _dt)
 							 this->joints[i]->GetLowerLimit(0).Radian()) * (215.0 / 255.0)
 							* this->handleCommand.rPRA / 255.0;
 						break;
-				}	
+				}
 			}
 		}
-		else if (i >= 2 && i <= 4)
+		else if (i >= 2 && i <= 4) // joint 1 of all fingers
 		{
 			int fingerPosition = 0;
 			switch (i)
 			{
-				case 2: 
+				case 2:
 					fingerPosition = this->handleCommand.rPRC;
 					break;
-				case 3: 
+				case 3:
 					fingerPosition = this->handleCommand.rPRB;
 					break;
-				case 4: 
+				case 4:
 					fingerPosition = this->handleCommand.rPRA;
 					break;
+
 			}
+
+            // Limit so that rest of motion is done in joint 2
+            if (fingerPosition > 150) fingerPosition = 150;
 
 			if (this->graspingMode == Pinch)
 			{
@@ -790,6 +797,53 @@ void RobotiqHandPlugin::UpdatePIDControl(double _dt)
 				// printf("Handle C: %d\n", this->handleCommand.rPRC);
 			}
 		}
+        else if (i >= 5 && i <= 7)
+        {
+            int fingerPosition = 0;
+            switch (i)
+            {
+                case 5:
+                    fingerPosition = this->handleCommand.rPRC;
+                    break;
+                case 6:
+                    fingerPosition = this->handleCommand.rPRB;
+                    break;
+                case 7:
+                    fingerPosition = this->handleCommand.rPRA;
+                    break;
+            }
+
+            // Move only if position command is past 150
+            if (fingerPosition < 150) fingerPosition = 0;
+            else fingerPosition = (fingerPosition - 150) * 1.6;
+
+
+            if (this->graspingMode == Pinch)
+            {
+                targetPose = this->joints[i]->GetLowerLimit(0).Radian() +
+                    (this->joints[i]->GetUpperLimit(0).Radian() -
+                     this->joints[i]->GetLowerLimit(0).Radian()) * (255.0 / 255.0)
+                    * fingerPosition / 255.0;
+            }
+            else if (this->graspingMode == Scissor)
+            {
+                targetSpeed = this->MinVelocity +
+                    ((this->MaxVelocity - this->MinVelocity) *
+                    this->handleCommand.rSPA / 255.0);
+            }
+            else
+            {
+                targetPose = this->joints[i]->GetLowerLimit(0).Radian() +
+                    (this->joints[i]->GetUpperLimit(0).Radian() -
+                     this->joints[i]->GetLowerLimit(0).Radian())
+                    * fingerPosition / 255.0;
+                // printf("DEBUG\n");
+                // printf("Lower: %.3f\n", this->joints[i]->GetLowerLimit(0).Radian());
+                // printf("Upper: %.3f\n", this->joints[i]->GetUpperLimit(0).Radian());
+                // printf("FingerPos: %d for joint %d\n", fingerPosition,i);
+            }
+        }
+
 		// printf("Grasping mode: %d\n", this->graspingMode);
 		// printf("Scissor: %.3f for joint %d\n", targetPose,i);
 
@@ -801,9 +855,22 @@ void RobotiqHandPlugin::UpdatePIDControl(double _dt)
 
 		// Update the PID.
 		double torque = this->posePID[i].Update(poseError, _dt);
+        // double torque = 20;
+
+        if (debug_flag)
+        {
+            if (counter > 100000) debug_flag = false;
+            else counter++;
+            printf("i = %d: %.3f TargetPos\n", i, targetPose);
+            printf("i = %d: %.3f CurrPos\n", i, currentPose);
+            printf("i = %d: %.3f Torque\n", i, torque);
+        }
 
 		// Apply the PID command.
-		this->fingerJoints[i]->SetForce(0, torque);
+        // if (i == 5)
+        //     this->fingerJoints[5]->SetForce(0, 50);
+        // else
+        this->fingerJoints[i]->SetForce(0, torque);
 	}
 }
 
@@ -854,75 +921,83 @@ bool RobotiqHandPlugin::FindJoints()
 
 	// We read the joint state from finger_1_joint_1
 	// but we actuate finger_1_joint_proximal_actuating_hinge (actuated).
-	suffix = "finger_1_joint_proximal_actuating_hinge";
+	suffix = "finger_1_joint_1";
 	if (!this->GetAndPushBackJoint(prefix + suffix, this->fingerJoints))
 		return false;
-	suffix = "finger_1_joint_1";
 	if (!this->GetAndPushBackJoint(prefix + suffix, this->joints))
 		return false;
 	this->jointNames.push_back(prefix + suffix);
 
 	// We read the joint state from finger_2_joint_1
 	// but we actuate finger_2_proximal_actuating_hinge (actuated).
-	suffix = "finger_2_joint_proximal_actuating_hinge";
+	suffix = "finger_2_joint_1";
 	if (!this->GetAndPushBackJoint(prefix + suffix, this->fingerJoints))
 		return false;
-	suffix = "finger_2_joint_1";
 	if (!this->GetAndPushBackJoint(prefix + suffix, this->joints))
 		return false;
 	this->jointNames.push_back(prefix + suffix);
 
 	// We read the joint state from finger_middle_joint_1
 	// but we actuate finger_middle_proximal_actuating_hinge (actuated).
-	suffix = "finger_middle_joint_proximal_actuating_hinge";
-	if (!this->GetAndPushBackJoint(prefix + suffix, this->fingerJoints))
-		return false;
 	suffix = "finger_middle_joint_1";
+    if (!this->GetAndPushBackJoint(prefix + suffix, this->fingerJoints))
+        return false;
 	if (!this->GetAndPushBackJoint(prefix + suffix, this->joints))
 		return false;
 	this->jointNames.push_back(prefix + suffix);
 
 	// finger_1_joint_2 (underactuated).
-	suffix = "finger_1_joint_2";
+    // suffix = "finger_1_joint_median_actuating_hinge";
+    suffix = "finger_1_joint_2";
+    if (!this->GetAndPushBackJoint(prefix + suffix, this->fingerJoints))
+        return false;
 	if (!this->GetAndPushBackJoint(prefix + suffix, this->joints))
 		return false;
 	this->jointNames.push_back(prefix + suffix);
 
-	// finger_1_joint_3 (underactuated).
-	suffix = "finger_1_joint_3";
-	if (!this->GetAndPushBackJoint(prefix + suffix, this->joints))
-		return false;
-	this->jointNames.push_back(prefix + suffix);
+    // finger_2_joint_2 (underactuated).
+    suffix = "finger_2_joint_2";
+    if (!this->GetAndPushBackJoint(prefix + suffix, this->fingerJoints))
+        return false;
+    if (!this->GetAndPushBackJoint(prefix + suffix, this->joints))
+        return false;
+    this->jointNames.push_back(prefix + suffix);
 
-	// finger_2_joint_2 (underactuated).
-	suffix = "finger_2_joint_2";
-	if (!this->GetAndPushBackJoint(prefix + suffix, this->joints))
-		return false;
-	this->jointNames.push_back(prefix + suffix);
+    // finger_middle_joint_2 (underactuated).
+    suffix = "finger_middle_joint_2";
+    if (!this->GetAndPushBackJoint(prefix + suffix, this->fingerJoints))
+        return false;
+    if (!this->GetAndPushBackJoint(prefix + suffix, this->joints))
+        return false;
+    this->jointNames.push_back(prefix + suffix);
 
-	// finger_2_joint_3 (underactuated).
-	suffix = "finger_2_joint_3";
-	if (!this->GetAndPushBackJoint(prefix + suffix, this->joints))
-		return false;
-	this->jointNames.push_back(prefix + suffix);
+	// // finger_1_joint_3 (underactuated).
+	// suffix = "finger_1_joint_3";
+	// if (!this->GetAndPushBackJoint(prefix + suffix, this->joints))
+	// 	return false;
+	// this->jointNames.push_back(prefix + suffix);
 
-	// palm_finger_middle_joint (underactuated).
-	suffix = "palm_finger_middle_joint";
-	if (!this->GetAndPushBackJoint(prefix + suffix, this->joints))
-		return false;
-	this->jointNames.push_back(prefix + suffix);
 
-	// finger_middle_joint_2 (underactuated).
-	suffix = "finger_middle_joint_2";
-	if (!this->GetAndPushBackJoint(prefix + suffix, this->joints))
-		return false;
-	this->jointNames.push_back(prefix + suffix);
 
-	// finger_middle_joint_3 (underactuated).
-	suffix = "finger_middle_joint_3";
-	if (!this->GetAndPushBackJoint(prefix + suffix, this->joints))
-		return false;
-	this->jointNames.push_back(prefix + suffix);
+	// // finger_2_joint_3 (underactuated).
+	// suffix = "finger_2_joint_3";
+	// if (!this->GetAndPushBackJoint(prefix + suffix, this->joints))
+	// 	return false;
+	// this->jointNames.push_back(prefix + suffix);
+
+	// // palm_finger_middle_joint (underactuated).
+	// suffix = "palm_finger_middle_joint";
+	// if (!this->GetAndPushBackJoint(prefix + suffix, this->joints))
+	// 	return false;
+	// this->jointNames.push_back(prefix + suffix);
+
+
+
+	// // finger_middle_joint_3 (underactuated).
+	// suffix = "finger_middle_joint_3";
+	// if (!this->GetAndPushBackJoint(prefix + suffix, this->joints))
+	// 	return false;
+	// this->jointNames.push_back(prefix + suffix);
 
 	gzlog << "RobotiqHandPlugin found all joints for " << this->side
 				<< " hand." << std::endl;
