@@ -21,7 +21,15 @@ there are multiple hands then a prefix followed by an "_" is needed.
           <color rgba="0 1 0 1"/>
         </material>
       </visual>
-
+      <collision>
+        <origin rpy="0 0 0" xyz="0 0 0"/>
+        <geometry>
+          <mesh filename="package://robotiq_s_model_visualization/meshes/s-model_articulated/collision/link_0.STL" />
+        </geometry>
+        <material name="yellow">
+          <color rgba="0 1 1 1"/>
+        </material>
+      </collision>
       <inertial>
         <mass value="0.1"/>
         <origin xyz="-0.01 0 0"/>
@@ -43,7 +51,15 @@ there are multiple hands then a prefix followed by an "_" is needed.
         </geometry>
         <material name="green"/>
       </visual>
-
+      <collision>
+        <origin rpy="0 0 ${3.1416/2}" xyz="0 0.05717 0"/>
+        <geometry>
+          <mesh filename="package://robotiq_s_model_visualization/meshes/s-model_articulated/collision/link_1.STL"/>
+        </geometry>
+        <material name="yellow">
+          <color rgba="0 1 1 1"/>
+        </material>
+      </collision>
       <inertial>
         <origin rpy="0 0 ${3.1416/2}" xyz="0.00053 0.03218 0"/>
         <mass value="0.047"/>
@@ -70,6 +86,13 @@ there are multiple hands then a prefix followed by an "_" is needed.
         </geometry>
         <material name="green"/>
       </visual>
+      <collision>
+        <origin rpy="0 0 ${3.1416/2}" xyz="0 0.03810 0.0075"/>
+          <geometry>
+            <mesh filename="package://robotiq_s_model_visualization/meshes/s-model_articulated/collision/link_2.STL"/>
+          </geometry>
+        <material name="yellow"/>
+      </collision>
       <inertial>
         <origin rpy="0 0 ${3.1416/2}" xyz="0.00048 0.02167 0.00018"/>
         <mass value="0.03284"/>
@@ -85,6 +108,7 @@ there are multiple hands then a prefix followed by an "_" is needed.
     <gazebo reference="${prefix}link_2">
       <mu1>1.1</mu1>
       <mu2>1.1</mu2>
+      <self_collide>0</self_collide>
     </gazebo>
 
     <!-- Link 3 -->
@@ -96,7 +120,13 @@ there are multiple hands then a prefix followed by an "_" is needed.
         </geometry>
         <material name="green"/>
       </visual>
-
+      <collision>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <geometry>
+          <mesh filename="package://robotiq_s_model_visualization/meshes/s-model_articulated/collision/link_3.STL"/>
+        </geometry>
+        <material name="yellow"/>
+      </collision>
       <inertial>
         <origin rpy="0 0 0" xyz="0.01626 0.00049 0.0002"/>
         <mass value="0.03354"/>
@@ -112,6 +142,7 @@ there are multiple hands then a prefix followed by an "_" is needed.
     <gazebo reference="${prefix}link_3">
       <mu1>1.1</mu1>
       <mu2>1.1</mu2>
+      <self_collide>1</self_collide>
     </gazebo>
 
     <!-- Link proximal actuating hinge -->
@@ -190,7 +221,7 @@ there are multiple hands then a prefix followed by an "_" is needed.
       <child link="${prefix}link_3"/>
       <dynamics damping="1" friction="0" />
       <axis xyz="0 0 1"/>
-      <origin rpy="0 0 ${3.1416/2 + 0.5198}" xyz="0 0.039 0"/>
+      <origin rpy="0 0 ${3.1416/2 + 0.5198 -0.3}" xyz="0 0.039 0"/>
       <!-- Limits: [-38deg.,60deg.] -->
       <limit lower="-0.6632" upper="1.0471" effort="60" velocity="-1"/>
     </joint>
